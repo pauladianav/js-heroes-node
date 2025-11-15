@@ -38,33 +38,51 @@ app.get('/health', (_req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
   });
 });
-
 /**
  * @swagger
  * /api/comedians:
  *   get:
  *     summary: Get all comedians
  *     tags: [Comedians]
+ *     parameters:
+ *       - in: query
+ *         name: nationality
+ *         schema:
+ *           type: string
+ *         description: Filter by nationality (e.g., US, UK)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Maximum number of results
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *         description: Number of results to skip
  *     responses:
  *       200:
  *         description: List of comedians
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                 count:
- *                   type: number
  */
 app.get('/api/comedians', (req, res) => {
+  let filterComedians = mockComedians;
+  const { nationality, limit, offset } = req.query;
+
+  if(limit && offset){
+    if(limit<=0){
+    res.status(422).json({
+      errMsg: "Limit parameter can not be negative."
+    });}
+    filterComedians = filterComedians.slice(offset,offset+limit);
+  } 
+  if(nationality){
+    filterComedians = filterComedians.filter((comediant)=>comediant.nationality===nationality);
+  } 
   res.status(200).json({
-    data: mockComedians,
-    count: mockComedians.length,
+    data: filterComedians,
+    count: filterComedians.length,
   });
+
 });
 
 
@@ -121,6 +139,33 @@ app.post('/api/comedians', (req, res) => {
   });
 });
 
+/**
+ * @swagger
+ * /api/comedians/{id}:
+ *   get:
+ *     summary: Get comedian by ID
+ *     tags: [Comedians]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Comedian ID
+ *     responses:
+ *       200:
+ *         description: Comedian details
+ *       404:
+ *         description: Comedian not found
+ */
+app.get('/api/comedians/:id', (req, res) => {
+  const { id } = req.params;
+  // Use id to find the comedian
+  const comedianFound = mockComedians.find((comedian) => comedian.id==id);
+  res.status(200).json({
+    data: comedianFound,
+  });
+});
 
 // Swagger UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
